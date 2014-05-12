@@ -7,11 +7,17 @@
 //
 
 #import "ViewController.h"
+#import "AFHTTPRequestOperationManager.h"
 
 @interface ViewController ()
 @property (weak, nonatomic) IBOutlet UILabel *statusLabel;
 @property (weak, nonatomic) IBOutlet UIButton *recordButton;
 @property (weak, nonatomic) IBOutlet UIButton *submitButton;
+@property (weak, nonatomic) IBOutlet UIButton *playButton;
+@property (weak, nonatomic) IBOutlet UISlider *slider;
+@property (weak, nonatomic) IBOutlet UIProgressView *recordingLevelBar;
+@property (weak, nonatomic) IBOutlet UILabel *timeLabel;
+@property (weak, nonatomic) IBOutlet UITextField *emailAddressField;
 
 @end
 
@@ -21,42 +27,134 @@
 {
     [super viewDidLoad];
     NSError *error = nil;
+    
     NSDictionary *settings = [NSDictionary dictionaryWithObjectsAndKeys:
                               [NSNumber numberWithFloat: 44100.0],                 AVSampleRateKey,
                               [NSNumber numberWithInt: kAudioFormatAppleLossless], AVFormatIDKey,
                               [NSNumber numberWithInt: 1],                         AVNumberOfChannelsKey,
-                              [NSNumber numberWithInt:kAudioFormatMPEGLayer3],     AVFormatIDKey,
                               [NSNumber numberWithInt: AVAudioQualityMax],         AVEncoderAudioQualityKey,
                               nil];
+    
+    
     NSArray *dirPaths = NSSearchPathForDirectoriesInDomains(NSCachesDirectory, NSUserDomainMask, YES);
     NSString *docsDir = [dirPaths objectAtIndex:0];
     docsDir = [dirPaths objectAtIndex:0];
     
-    NSString *soundFilePath = [docsDir stringByAppendingPathComponent:@"sound.mp4"];
+    NSString *soundFilePath = [docsDir stringByAppendingPathComponent:@"sound.caf"];
 
-    NSURL *url = [NSURL fileURLWithPath:soundFilePath];
+    soundUrl= [NSURL fileURLWithPath:soundFilePath];
+    AVAudioSession *audioSession = [AVAudioSession sharedInstance];
     
-    recorder = [[AVAudioRecorder alloc] initWithURL:url settings:settings error:&error];
+    NSError *audioSessionError;
+    
+    [audioSession setCategory :AVAudioSessionCategoryPlayAndRecord error:&audioSessionError];
+    [audioSession setActive:YES error:&audioSessionError];
+    
+    
+    
+    recorder = [[AVAudioRecorder alloc] initWithURL:soundUrl settings:settings error:&error];
     recorder.meteringEnabled = YES;
-    self.statusLabel.text = @"Waiting for to start recording";
+    
+    audioPlayer = [[AVAudioPlayer alloc] initWithContentsOfURL:soundUrl error:&audioSessionError];
+    
+    self.statusLabel.text = @"Waiting to start recording";
 	self.submitButton.hidden=YES;
+    
+    NSOperationQueue *queue             = [[NSOperationQueue alloc] init];
+    NSInvocationOperation *operation    = [[NSInvocationOperation alloc]
+                                           initWithTarget:self selector:@selector(updateMeters) object:nil];
+    [queue addOperation: operation];
+    
 }
 - (IBAction)submitButtonPressed:(id)sender {
+    AFHTTPRequestOperationManager *manager = [AFHTTPRequestOperationManager manager];
+    NSDictionary *parameters = @{@"foo": @"bar"};
+    NSURL *filePath = soundUrl;
+    [manager POST:@"http://example.com/resources.json" parameters:parameters constructingBodyWithBlock:^(id<AFMultipartFormData> formData) {
+        [formData appendPartWithFileURL:filePath name:@"file" error:nil];
+    } success:^(AFHTTPRequestOperation *operation, id responseObject) {
+        NSLog(@"Success: %@", responseObject);
+    } failure:^(AFHTTPRequestOperation *operation, NSError *error) {
+        NSLog(@"Error: %@", error);
+    }];
+}
+- (IBAction)sliderValueChanged:(id)sender {
+}
+- (IBAction)playButtonPressed:(id)sender {
+    if(!audioPlayer.playing){
+        [audioPlayer prepareToPlay];
+        [audioPlayer play];
+        [self.playButton setTitle:@"Stop" forState:UIControlStateNormal];
+
+    }else{
+        [audioPlayer stop];
+        [self.playButton setTitle:@"Play" forState:UIControlStateNormal];
+    }
     
 }
 - (IBAction)recordAudio:(id)sender {
-    if(recorder.recording){
+    if(!recorder.recording){
+        [audioPlayer stop];
         [recorder prepareToRecord];
   		[recorder record];
         self.statusLabel.text = @"Recording";
+        [self.recordButton setTitle:@"Stop recording" forState:UIControlStateNormal];
+        self.submitButton.hidden=YES;
+        self.slider.hidden=YES;
+        self.playButton.hidden=YES;
+        self.recordingLevelBar.hidden=NO;
+        self.timeLabel.hidden =YES;
+        self.emailAddressField.hidden=YES;
+        
     }else{
         [recorder stop];
-        [self.recordButton setTitle:@"Stop recording" forState:UIControlStateNormal];
         self.statusLabel.text = @"Recording stopped";
+        [self.recordButton setTitle:@"Start new recording" forState:UIControlStateNormal];
         self.submitButton.hidden=NO;
+        self.slider.hidden=NO;
+        self.playButton.hidden=NO;
+        self.recordingLevelBar.hidden=YES;
+        self.timeLabel.hidden =NO;
+        self.timeLabel.text = [NSString stringWithFormat:@"%.f seconds",audioPlayer.duration];
+        self.emailAddressField.hidden=NO;
     }
 }
 
+-(void)updateMeters
+{
+    
+    do {
+        [recorder updateMeters];
+        
+        
+        if (recorder.recording) {
+            averagePower   = [recorder averagePowerForChannel:0];
+            peakPower      = [recorder peakPowerForChannel:0];
+            [self performSelectorOnMainThread:
+             @selector(meterLevelsDidUpdate:) withObject:self waitUntilDone:NO];
+        }
+        /*
+        if(audioPlayer.playing){
+            [self performSelectorOnMainThread:
+             @selector(playbackPostionUpdate:) withObject:self waitUntilDone:NO];
+        }
+        */
+        [NSThread sleepForTimeInterval:.05]; // 20 FPS
+    } while (YES);
+}
+
+-(void)meterLevelsDidUpdate:(id)sender{
+    [self.recordingLevelBar setProgress: pow (10, peakPower / 20) animated:NO];
+
+}
+/*
+-(void)playbackPostionUpdate:(id)sender{
+    NSTimeInterval durration = audioPlayer.duration;
+    NSTimeInterval position = audioPlayer.deviceCurrentTime;
+
+    [self.slider setValue:(durration-position)/durration animated:NO];
+}
+*/
 - (void)didReceiveMemoryWarning
 {
     [super didReceiveMemoryWarning];

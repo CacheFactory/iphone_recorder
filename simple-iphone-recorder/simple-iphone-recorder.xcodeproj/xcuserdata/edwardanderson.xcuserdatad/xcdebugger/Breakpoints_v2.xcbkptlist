@@ -6,16 +6,16 @@
       <BreakpointProxy
          BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
          <BreakpointContent
-            shouldBeEnabled = "Yes"
+            shouldBeEnabled = "No"
             ignoreCount = "0"
             continueAfterRunningActions = "No"
             filePath = "simple-iphone-recorder/ViewController.m"
-            timestampString = "421289447.377482"
+            timestampString = "421543596.36674"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "45"
-            endingLineNumber = "45"
-            landmarkName = "-submitButtonPressed:"
+            startingLineNumber = "126"
+            endingLineNumber = "126"
+            landmarkName = "-updateMeters"
             landmarkType = "5">
          </BreakpointContent>
       </BreakpointProxy>

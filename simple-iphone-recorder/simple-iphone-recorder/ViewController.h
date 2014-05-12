@@ -12,6 +12,10 @@
 
 @interface ViewController : UIViewController{
     AVAudioRecorder *recorder;
+    float averagePower;
+    float peakPower;
+    NSURL *soundUrl;
+    AVAudioPlayer *audioPlayer;
 }
 
 
