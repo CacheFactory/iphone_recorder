@@ -55,7 +55,7 @@
     recorder = [[AVAudioRecorder alloc] initWithURL:soundUrl settings:settings error:&error];
     recorder.meteringEnabled = YES;
     
-    audioPlayer = [[AVAudioPlayer alloc] initWithContentsOfURL:soundUrl error:&audioSessionError];
+    
     
     self.statusLabel.text = @"Waiting to start recording";
 	self.submitButton.hidden=YES;
@@ -67,21 +67,32 @@
     
 }
 - (IBAction)submitButtonPressed:(id)sender {
+
+    NSData *data = [NSData dataWithContentsOfURL:soundUrl];
     AFHTTPRequestOperationManager *manager = [AFHTTPRequestOperationManager manager];
-    NSDictionary *parameters = @{@"foo": @"bar"};
-    NSURL *filePath = soundUrl;
-    [manager POST:@"http://example.com/resources.json" parameters:parameters constructingBodyWithBlock:^(id<AFMultipartFormData> formData) {
-        [formData appendPartWithFileURL:filePath name:@"file" error:nil];
+    [manager POST:@"/some/url" parameters:nil constructingBodyWithBlock:^(id<AFMultipartFormData> formData) {
+        
+        [formData appendPartWithFileData:data name:@"recording" fileName:@"recording.caf" mimeType:@"audio/x-caf"];
+        
     } success:^(AFHTTPRequestOperation *operation, id responseObject) {
-        NSLog(@"Success: %@", responseObject);
+        UIAlertView *alert = [[UIAlertView alloc] initWithTitle:@"Success" message:@"You will reveive and email with your dictation soon" delegate:self cancelButtonTitle:@"Ok" otherButtonTitles:nil,nil];
+        [alert show];
+        [currentResponder resignFirstResponder];
+        
     } failure:^(AFHTTPRequestOperation *operation, NSError *error) {
-        NSLog(@"Error: %@", error);
+        UIAlertView *alert = [[UIAlertView alloc] initWithTitle:@"Error" message:@"There was an error submitting your audio" delegate:self cancelButtonTitle:@"Ok" otherButtonTitles:nil,nil];
+        [alert show];
     }];
 }
-- (IBAction)sliderValueChanged:(id)sender {
+
+-(void)audioPlayerDidFinishPlaying:(AVAudioPlayer *)player successfully:(BOOL)flag{
+    [self.playButton setTitle:@"Play" forState:UIControlStateNormal];
 }
+
+
 - (IBAction)playButtonPressed:(id)sender {
-    if(!audioPlayer.playing){
+    if(audioPlayer && !audioPlayer.isPlaying){
+        
         [audioPlayer prepareToPlay];
         [audioPlayer play];
         [self.playButton setTitle:@"Stop" forState:UIControlStateNormal];
@@ -95,6 +106,7 @@
 - (IBAction)recordAudio:(id)sender {
     if(!recorder.recording){
         [audioPlayer stop];
+        [recorder deleteRecording];
         [recorder prepareToRecord];
   		[recorder record];
         self.statusLabel.text = @"Recording";
@@ -115,9 +127,20 @@
         self.playButton.hidden=NO;
         self.recordingLevelBar.hidden=YES;
         self.timeLabel.hidden =NO;
+        
+        NSError *audioSessionError;
+        audioPlayer = [[AVAudioPlayer alloc] initWithContentsOfURL:soundUrl error:&audioSessionError];
+        audioPlayer.delegate = self;
+        
         self.timeLabel.text = [NSString stringWithFormat:@"%.f seconds",audioPlayer.duration];
         self.emailAddressField.hidden=NO;
     }
+}
+- (IBAction)screenTap:(id)sender {
+    [currentResponder resignFirstResponder];
+}
+- (IBAction)emailEditBegin:(id)sender {
+    currentResponder = (UIInputView *)sender;
 }
 
 -(void)updateMeters
