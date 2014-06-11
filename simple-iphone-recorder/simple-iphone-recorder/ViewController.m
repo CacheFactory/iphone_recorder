@@ -67,21 +67,27 @@
     
 }
 - (IBAction)submitButtonPressed:(id)sender {
-
+    NSDictionary *params = @{@"client_email(1-Form)": self.emailAddressField.text};
     NSData *data = [NSData dataWithContentsOfURL:soundUrl];
     AFHTTPRequestOperationManager *manager = [AFHTTPRequestOperationManager manager];
-    [manager POST:@"/some/url" parameters:nil constructingBodyWithBlock:^(id<AFMultipartFormData> formData) {
+    
+    [manager POST:@"https://sterett.Taskflow.io/public_interactions/start_public/288" parameters:params constructingBodyWithBlock:^(id<AFMultipartFormData> formData) {
         
-        [formData appendPartWithFileData:data name:@"recording" fileName:@"recording.caf" mimeType:@"audio/x-caf"];
+        [formData appendPartWithFileData:data name:@"dictation_file(1-Form)" fileName:@"recording.caf" mimeType:@"audio/x-caf"];
         
     } success:^(AFHTTPRequestOperation *operation, id responseObject) {
-        UIAlertView *alert = [[UIAlertView alloc] initWithTitle:@"Success" message:@"You will reveive and email with your dictation soon" delegate:self cancelButtonTitle:@"Ok" otherButtonTitles:nil,nil];
-        [alert show];
-        [currentResponder resignFirstResponder];
+        //hack
         
     } failure:^(AFHTTPRequestOperation *operation, NSError *error) {
-        UIAlertView *alert = [[UIAlertView alloc] initWithTitle:@"Error" message:@"There was an error submitting your audio" delegate:self cancelButtonTitle:@"Ok" otherButtonTitles:nil,nil];
-        [alert show];
+        if(error.code == -1016){ //error if response back with html
+            UIAlertView *alert = [[UIAlertView alloc] initWithTitle:@"Success" message:@"You will reveive and email with your dictation soon" delegate:self cancelButtonTitle:@"Ok" otherButtonTitles:nil,nil];
+            [alert show];
+            [currentResponder resignFirstResponder];
+        }else{
+            UIAlertView *alert = [[UIAlertView alloc] initWithTitle:@"Error" message:@"There was an error submitting your audio" delegate:self cancelButtonTitle:@"Ok" otherButtonTitles:nil,nil];
+            [alert show];
+        }
+        
     }];
 }
 

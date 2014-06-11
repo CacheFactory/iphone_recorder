@@ -10,11 +10,11 @@
             ignoreCount = "0"
             continueAfterRunningActions = "No"
             filePath = "simple-iphone-recorder/ViewController.m"
-            timestampString = "424205195.948601"
+            timestampString = "424206799.296924"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "149"
-            endingLineNumber = "149"
+            startingLineNumber = "155"
+            endingLineNumber = "155"
             landmarkName = "-updateMeters"
             landmarkType = "5">
          </BreakpointContent>
